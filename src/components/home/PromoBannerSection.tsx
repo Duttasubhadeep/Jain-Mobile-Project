@@ -100,7 +100,7 @@ export const PromoBannerSection: React.FC<PromoBannerSectionProps> = ({ navigate
             <div className="lg:col-span-5 flex justify-center">
               <div className="relative w-full rounded-2xl overflow-hidden border border-[var(--theme-border)] shadow-2xl group hover:border-[var(--theme-primary)] transition-all duration-500">
                 <img
-                  src="/src/assets/images/festive_lootlo_sale_1789505594932.jpg"
+                  src="/assets/images/festive_lootlo_sale_1789505594932.jpg"
                   alt="Festive Loot Lo Sale at Jain's Mobiles & Laptops"
                   className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-700"
                   loading="lazy"

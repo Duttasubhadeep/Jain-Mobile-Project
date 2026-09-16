@@ -38,7 +38,7 @@ export const INITIAL_SETTINGS: BusinessSettings = {
   business_name: "JAIN'S Mobiles & Laptops",
   tagline: "TRUST • QUALITY • SERVICE",
   established_year: 2005,
-  logo_url: "/src/assets/images/jains_brand_logo_1789505559002.jpg",
+  logo_url: "/assets/images/jains_brand_logo_1789505559002.jpg",
   phone: "+91 86419 54500",
   whatsapp_number: "+918641954500",
   email: "contact@jainsmobiles.com",
@@ -525,7 +525,7 @@ export const INITIAL_BANNERS: Banner[] = [
     id: 'ban-lootlo',
     title: 'FESTIVE LOOT LO SALE LIVE',
     subtitle: 'Extra ₹5,000 Exchange Bonus • Free Lifetime Tempered Glass on Mobiles Above ₹10,001 • Chance to Win Electric Scooter & Swiss Military Gifts!',
-    image_url: '/src/assets/images/festive_lootlo_sale_1789505594932.jpg',
+    image_url: '/assets/images/festive_lootlo_sale_1789505594932.jpg',
     button_text: 'EXPLORE LOOT LO OFFERS →',
     button_url: '/offers',
     start_date: '2026-01-01',
@@ -537,7 +537,7 @@ export const INITIAL_BANNERS: Banner[] = [
     id: 'ban-prebook',
     title: 'PRE-BOOK NEW IPHONE & FLAGSHIPS',
     subtitle: 'Starting from ₹21,650/month with Bajaj Finserv & HDFC zero-down financing. Guaranteed instant showroom allocation.',
-    image_url: '/src/assets/images/iphone_prebook_showcase_1789505648113.jpg',
+    image_url: '/assets/images/iphone_prebook_showcase_1789505648113.jpg',
     button_text: 'PRE-BOOK ON WHATSAPP →',
     button_url: '/mobiles',
     start_date: '2026-01-01',
@@ -549,7 +549,7 @@ export const INITIAL_BANNERS: Banner[] = [
     id: 'ban-heritage',
     title: '21 YEARS OF UNMATCHED TRUST',
     subtitle: "Established in 2005. 3 Showrooms across Kharagpur with 9,800+ community followers and authorized genuine warranty.",
-    image_url: '/src/assets/images/multi_brand_heritage_1789505663574.jpg',
+    image_url: '/assets/images/multi_brand_heritage_1789505663574.jpg',
     button_text: 'DISCOVER OUR HERITAGE →',
     button_url: '/about',
     start_date: '2026-01-01',
@@ -564,8 +564,8 @@ export const INITIAL_SOCIAL: SocialMediaContent[] = [
     id: 'soc-1',
     platform: 'Instagram',
     content_type: 'image',
-    media_url: '/src/assets/images/jains_store_team_1789505580520.jpg',
-    thumbnail_url: '/src/assets/images/jains_store_team_1789505580520.jpg',
+    media_url: '/assets/images/jains_store_team_1789505580520.jpg',
+    thumbnail_url: '/assets/images/jains_store_team_1789505580520.jpg',
     title: 'Jain\'s Showroom Team @ Gole Bazar',
     caption: 'Celebrating our team strength at Gole Bazar showroom! Over 21 years of service with 18+ retail specialists ready to assist you. Follow @jains.akashjain',
     target_url: 'https://instagram.com/jains.akashjain',
@@ -578,8 +578,8 @@ export const INITIAL_SOCIAL: SocialMediaContent[] = [
     id: 'soc-2',
     platform: 'Facebook',
     content_type: 'image',
-    media_url: '/src/assets/images/festive_lootlo_sale_1789505594932.jpg',
-    thumbnail_url: '/src/assets/images/festive_lootlo_sale_1789505594932.jpg',
+    media_url: '/assets/images/festive_lootlo_sale_1789505594932.jpg',
+    thumbnail_url: '/assets/images/festive_lootlo_sale_1789505594932.jpg',
     title: 'Loot Lo Sale Campaign — 9.8K Followers',
     caption: 'Join our Facebook community of 9,800+ tech lovers. Real showroom deals, live prize distributions, and exclusive festive perks.',
     target_url: 'https://facebook.com/jainsmobiles',
@@ -592,8 +592,8 @@ export const INITIAL_SOCIAL: SocialMediaContent[] = [
     id: 'soc-3',
     platform: 'YouTube',
     content_type: 'video',
-    media_url: '/src/assets/images/iphone_prebook_showcase_1789505648113.jpg',
-    thumbnail_url: '/src/assets/images/iphone_prebook_showcase_1789505648113.jpg',
+    media_url: '/assets/images/iphone_prebook_showcase_1789505648113.jpg',
+    thumbnail_url: '/assets/images/iphone_prebook_showcase_1789505648113.jpg',
     title: 'Flagship Showcase & EMI Walkthrough',
     caption: 'Comparing top flagships and instant EMI calculations live from our Gole Bazar & Shimla Center showrooms.',
     target_url: 'https://facebook.com/jainsmobiles',
@@ -781,7 +781,11 @@ export const DataService = {
         localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(merged));
         return merged;
       }
-      return { ...INITIAL_SETTINGS, ...parsed };
+      const result = { ...INITIAL_SETTINGS, ...parsed };
+      if (result.logo_url && result.logo_url.startsWith('/src/assets/images')) {
+        result.logo_url = result.logo_url.replace('/src/assets/images', '/assets/images');
+      }
+      return result;
     } catch {
       return INITIAL_SETTINGS;
     }
@@ -967,7 +971,10 @@ export const DataService = {
         localStorage.setItem(STORAGE_KEYS.BANNERS, JSON.stringify(INITIAL_BANNERS));
         return INITIAL_BANNERS;
       }
-      return parsed;
+      return parsed.map((b: Banner) => ({
+        ...b,
+        image_url: b.image_url?.replace('/src/assets/images', '/assets/images'),
+      }));
     } catch {
       return INITIAL_BANNERS;
     }
@@ -990,7 +997,11 @@ export const DataService = {
         localStorage.setItem(STORAGE_KEYS.SOCIAL, JSON.stringify(INITIAL_SOCIAL));
         return INITIAL_SOCIAL;
       }
-      return parsed;
+      return parsed.map((s: SocialMediaContent) => ({
+        ...s,
+        media_url: s.media_url?.replace('/src/assets/images', '/assets/images'),
+        thumbnail_url: s.thumbnail_url?.replace('/src/assets/images', '/assets/images'),
+      }));
     } catch {
       return INITIAL_SOCIAL;
     }

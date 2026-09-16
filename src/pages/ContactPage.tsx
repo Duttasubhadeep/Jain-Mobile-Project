@@ -32,7 +32,7 @@ export const ContactPage: React.FC = () => {
             {/* Storefront Team Card */}
             <div className="rounded-2xl overflow-hidden glass-card border border-[var(--theme-border)] relative group hover:border-[var(--theme-primary)] transition-all duration-500 shadow-xl">
               <img
-                src="/src/assets/images/jains_store_team_1789505580520.jpg"
+                src="/assets/images/jains_store_team_1789505580520.jpg"
                 alt="Jain's Mobiles & Laptops Kharagpur Team"
                 className="w-full h-52 object-cover group-hover:scale-105 transition-transform duration-700"
                 referrerPolicy="no-referrer"

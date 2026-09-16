@@ -124,7 +124,7 @@ export const Header: React.FC<HeaderProps> = ({ currentPath, navigate }) => {
             >
               <div className="relative">
                 <img
-                  src={settings.logo_url || "/src/assets/images/jains_brand_logo_1789505559002.jpg"}
+                  src={settings.logo_url || "/assets/images/jains_brand_logo_1789505559002.jpg"}
                   alt={settings.business_name}
                   className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl object-contain bg-neutral-900/90 border border-white/10 p-1 group-hover:border-white/25 group-hover:scale-[1.03] transition-all duration-300 shadow-sm"
                   referrerPolicy="no-referrer"

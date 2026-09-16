@@ -42,7 +42,7 @@ export const StoreExperienceSection: React.FC = () => {
           <div className="lg:col-span-6 space-y-4">
             <div className="rounded-2xl overflow-hidden bg-[#111111] border border-[#2A2A2A] relative aspect-[16/10] group shadow-2xl">
               <img
-                src="/src/assets/images/jains_store_team_1789505580520.jpg"
+                src="/assets/images/jains_store_team_1789505580520.jpg"
                 alt="Jain's Mobiles & Laptops Storefront Team"
                 className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-700"
                 loading="lazy"
