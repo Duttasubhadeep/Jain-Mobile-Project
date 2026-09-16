@@ -126,10 +126,9 @@ export const Header: React.FC<HeaderProps> = ({ currentPath, navigate }) => {
                 <img
                   src={settings.logo_url || "/src/assets/images/jains_brand_logo_1789505559002.jpg"}
                   alt={settings.business_name}
-                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl object-contain bg-black border border-[var(--theme-primary)]/50 p-0.5 group-hover:border-[var(--theme-primary)] group-hover:scale-105 transition-all shadow-md group-hover:shadow-[0_0_15px_var(--theme-glow)]"
+                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl object-contain bg-neutral-900/90 border border-white/10 p-1 group-hover:border-white/25 group-hover:scale-[1.03] transition-all duration-300 shadow-sm"
                   referrerPolicy="no-referrer"
                 />
-                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[var(--theme-primary)] animate-ping" />
               </div>
               <div className="flex flex-col">
                 <div className="flex items-center gap-1.5">
