@@ -1,0 +1,6 @@
+{
+  "name": "Jain's Mobiles & Laptops",
+  "description": "Premium mobile and electronics showroom established since 2005. Trust, Quality, Service for new smartphones, laptops, accessories, exchange, and flexible finance.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

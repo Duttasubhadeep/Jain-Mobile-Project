@@ -1,0 +1,262 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    /* Default theme: Cyber Crimson (Ultra Dynamic Flagship Tech) */
+    --theme-primary: #FF1E46;
+    --theme-primary-hover: #FF385C;
+    --theme-primary-rgb: 255, 30, 70;
+    --theme-accent: #FFB703;
+    --theme-accent-rgb: 255, 183, 3;
+    --theme-bg-base: #060507;
+    --theme-bg-surface: rgba(18, 14, 20, 0.7);
+    --theme-bg-card: rgba(24, 18, 28, 0.85);
+    --theme-bg-elevated: rgba(34, 24, 40, 0.95);
+    --theme-border: rgba(255, 30, 70, 0.25);
+    --theme-border-subtle: rgba(255, 255, 255, 0.08);
+    --theme-glow: rgba(255, 30, 70, 0.35);
+    --theme-glow-sm: 0 0 20px rgba(255, 30, 70, 0.3);
+    --theme-glow-lg: 0 0 50px rgba(255, 30, 70, 0.25);
+    --theme-radial-gradient: radial-gradient(circle at 75% 30%, rgba(255, 30, 70, 0.22), transparent 50%), radial-gradient(circle at 20% 80%, rgba(255, 183, 3, 0.12), transparent 45%), #060507;
+
+    /* Legacy fallbacks */
+    --bg-primary: #060507;
+    --bg-deep: #0A080C;
+    --bg-card: #120E16;
+    --bg-dark-grey: #1A1520;
+    --jains-red: #FF1E46;
+    --bright-red: #FF385C;
+    --dark-red: #B30024;
+    --heritage-gold: #FFB703;
+    --border-grey: #2A2432;
+  }
+
+  /* Theme: Festive Gold (Diwali / Durga Puja / Loot Lo Dhamaka) */
+  [data-theme="festive-gold"] {
+    --theme-primary: #F59E0B;
+    --theme-primary-hover: #FBBF24;
+    --theme-primary-rgb: 245, 158, 11;
+    --theme-accent: #EF4444;
+    --theme-accent-rgb: 239, 68, 68;
+    --theme-bg-base: #080603;
+    --theme-bg-surface: rgba(24, 18, 8, 0.75);
+    --theme-bg-card: rgba(32, 24, 12, 0.88);
+    --theme-bg-elevated: rgba(44, 32, 16, 0.95);
+    --theme-border: rgba(245, 158, 11, 0.3);
+    --theme-border-subtle: rgba(255, 215, 0, 0.12);
+    --theme-glow: rgba(245, 158, 11, 0.4);
+    --theme-glow-sm: 0 0 20px rgba(245, 158, 11, 0.35);
+    --theme-glow-lg: 0 0 50px rgba(245, 158, 11, 0.28);
+    --theme-radial-gradient: radial-gradient(circle at 75% 30%, rgba(245, 158, 11, 0.25), transparent 50%), radial-gradient(circle at 20% 80%, rgba(239, 68, 68, 0.15), transparent 45%), #080603;
+
+    --jains-red: #F59E0B;
+    --bright-red: #FBBF24;
+    --heritage-gold: #FFD700;
+  }
+
+  /* Theme: Hyper Blue (Cyberpunk / Sapphire Ice / Apple Titanium) */
+  [data-theme="hyper-blue"] {
+    --theme-primary: #00F0FF;
+    --theme-primary-hover: #38BDF8;
+    --theme-primary-rgb: 0, 240, 255;
+    --theme-accent: #A855F7;
+    --theme-accent-rgb: 168, 85, 247;
+    --theme-bg-base: #030712;
+    --theme-bg-surface: rgba(8, 20, 40, 0.75);
+    --theme-bg-card: rgba(12, 28, 56, 0.88);
+    --theme-bg-elevated: rgba(18, 38, 76, 0.95);
+    --theme-border: rgba(0, 240, 255, 0.3);
+    --theme-border-subtle: rgba(0, 240, 255, 0.12);
+    --theme-glow: rgba(0, 240, 255, 0.4);
+    --theme-glow-sm: 0 0 20px rgba(0, 240, 255, 0.35);
+    --theme-glow-lg: 0 0 50px rgba(0, 240, 255, 0.28);
+    --theme-radial-gradient: radial-gradient(circle at 75% 30%, rgba(0, 240, 255, 0.22), transparent 50%), radial-gradient(circle at 20% 80%, rgba(168, 85, 247, 0.18), transparent 45%), #030712;
+
+    --jains-red: #00F0FF;
+    --bright-red: #38BDF8;
+    --heritage-gold: #A855F7;
+  }
+
+  body {
+    font-family: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background-color: var(--theme-bg-base);
+    color: #F8FAFC;
+    overflow-x: hidden;
+    transition: background-color 0.4s ease, color 0.3s ease;
+  }
+
+  /* Custom scrollbar with neon accent */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: rgba(10, 8, 14, 0.8);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.18);
+    border-radius: 9999px;
+    border: 2px solid rgba(10, 8, 14, 0.8);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--theme-primary);
+    box-shadow: 0 0 10px var(--theme-glow);
+  }
+}
+
+/* Eye-Catching Glass & Glow Utilities */
+.neon-glow-primary {
+  box-shadow: 0 0 25px var(--theme-glow);
+}
+
+.neon-glow-sm {
+  box-shadow: 0 0 15px var(--theme-glow);
+}
+
+.neon-glow-lg {
+  box-shadow: 0 0 50px var(--theme-glow);
+}
+
+.hero-radial-bg {
+  background: var(--theme-radial-gradient);
+}
+
+/* Glassmorphism surfaces */
+.glass-panel {
+  background: var(--theme-bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--theme-border-subtle);
+}
+
+.glass-panel:hover {
+  border-color: var(--theme-border);
+}
+
+.glass-pill {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* Animated Shimmer & Gradient Sweeps */
+.shimmer-text {
+  background: linear-gradient(90deg, #FFFFFF 0%, #FFFFFF 40%, var(--theme-primary) 50%, #FFFFFF 60%, #FFFFFF 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer-move 4s infinite linear;
+}
+
+@keyframes shimmer-move {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+/* Rotating glowing halo for featured devices */
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 22s linear infinite;
+}
+
+/* Smooth floating animations */
+@keyframes float-gentle {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(1deg);
+  }
+}
+
+@keyframes float-reverse {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(8px) rotate(-1deg);
+  }
+}
+
+.animate-float {
+  animation: float-gentle 4.5s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: float-reverse 5.5s ease-in-out infinite;
+}
+
+/* Pulsing radar for live indicators */
+@keyframes radar-pulse {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+}
+
+.animate-radar {
+  animation: radar-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Animated Border Glow */
+@keyframes border-shimmer {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animated-gradient-border {
+  position: relative;
+  border-radius: 1rem;
+}
+
+.animated-gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(90deg, var(--theme-primary), var(--theme-accent), var(--theme-primary));
+  background-size: 200% 200%;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: border-shimmer 4s ease infinite;
+  pointer-events: none;
+}
+
+/* Marquee */
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee 28s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* Reduced motion support */
+[data-animations="false"] * {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}
