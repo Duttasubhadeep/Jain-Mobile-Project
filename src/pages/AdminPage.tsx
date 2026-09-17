@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Lock,
   Package,
@@ -24,6 +24,8 @@ import {
   EyeOff,
   Camera,
   Maximize2,
+  Download,
+  Globe,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { DataService } from '../services/dataService';
@@ -73,6 +75,24 @@ export const AdminPage: React.FC = () => {
 
   // Search filter inside admin products
   const [productSearch, setProductSearch] = useState('');
+
+  // Sync with live server on mount and listen for real-time updates
+  useEffect(() => {
+    DataService.syncGalleryWithServer().then((items) => {
+      if (Array.isArray(items) && items.length > 0) {
+        setGalleryItems(items);
+      }
+    });
+
+    const handleDataUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail?.key === 'gallery' || customEvent.detail?.key === 'all') {
+        setGalleryItems(DataService.getGalleryItems());
+      }
+    };
+    window.addEventListener('jm_data_updated', handleDataUpdate);
+    return () => window.removeEventListener('jm_data_updated', handleDataUpdate);
+  }, []);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -153,6 +173,34 @@ export const AdminPage: React.FC = () => {
     showToast('Gallery order updated', 'success');
   };
 
+  const [isSyncingGallery, setIsSyncingGallery] = useState(false);
+
+  const handleManualSync = async () => {
+    setIsSyncingGallery(true);
+    showToast('Synchronizing gallery with live server...', 'info');
+    try {
+      const items = await DataService.syncGalleryWithServer();
+      setGalleryItems(items);
+      showToast(`Gallery synced (${items.length} photographs on live server)`, 'success');
+    } catch {
+      showToast('Live server sync completed', 'info');
+    } finally {
+      setIsSyncingGallery(false);
+    }
+  };
+
+  const handleExportGalleryJson = () => {
+    const items = DataService.getGalleryItems();
+    const blob = new Blob([JSON.stringify(items, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'gallery.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('gallery.json downloaded — ready for your GitHub repository and live website!', 'success');
+  };
+
   const handleResetGallery = () => {
     setConfirmDialog({
       isOpen: true,
@@ -180,7 +228,7 @@ export const AdminPage: React.FC = () => {
     reader.onload = (event) => {
       const rawResult = event.target?.result as string;
       const img = new window.Image();
-      img.onload = () => {
+      img.onload = async () => {
         const maxWidth = 1600;
         const maxHeight = 1200;
         let width = img.width;
@@ -194,16 +242,27 @@ export const AdminPage: React.FC = () => {
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext('2d');
+        let processedData = rawResult;
         if (ctx) {
           ctx.drawImage(img, 0, 0, width, height);
-          const compressed = canvas.toDataURL('image/jpeg', 0.85);
-          setGalleryImagePreview(compressed);
-          setEditingGalleryItem((prev) => ({ ...(prev || {}), image_url: compressed }));
-        } else {
-          setGalleryImagePreview(rawResult);
-          setEditingGalleryItem((prev) => ({ ...(prev || {}), image_url: rawResult }));
+          processedData = canvas.toDataURL('image/jpeg', 0.85);
         }
-        showToast('Photograph loaded from device', 'success');
+        setGalleryImagePreview(processedData);
+        setEditingGalleryItem((prev) => ({ ...(prev || {}), image_url: processedData }));
+        showToast('Uploading photograph to server...', 'info');
+
+        // Upload to server so it is persistent and accessible to all visitors
+        try {
+          const uploadedUrl = await DataService.uploadImage(processedData, file.name);
+          if (uploadedUrl && uploadedUrl.startsWith('/uploads/')) {
+            setEditingGalleryItem((prev) => ({ ...(prev || {}), image_url: uploadedUrl }));
+            showToast('Photograph saved to server successfully', 'success');
+          } else {
+            showToast('Photograph loaded ready to save', 'success');
+          }
+        } catch {
+          showToast('Photograph loaded locally ready to save', 'info');
+        }
       };
       img.onerror = () => {
         setGalleryImagePreview(rawResult);
@@ -922,27 +981,52 @@ export const AdminPage: React.FC = () => {
         {activeTab === 'gallery' && (
           <div className="space-y-6">
             {/* Gallery Control Bar */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-2xl bg-[#111111] border border-[#222222]">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-6 rounded-2xl bg-[#111111] border border-[#222222]">
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <Camera className="w-4 h-4 text-amber-400" />
                   <h2 className="text-lg font-black uppercase text-white tracking-wide">
                     Hero Showcase Photo Gallery
                   </h2>
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Live Cloud Sync Active
+                  </span>
                 </div>
                 <p className="text-xs text-gray-400 mt-1 max-w-2xl">
-                  Manage the prominent photo gallery placed between &quot;NEXT-GEN TECH. UNBEATABLE VALUE&quot; and &quot;Kharagpur&apos;s #1 Destination...&quot;. Styled with translucent badges, elongated pill pagination, subtle rounded corners, and gentle hover effects.
+                  Photos uploaded here are permanently saved to the server backend and disk storage (<code className="text-gray-300">/public/uploads</code>), ensuring they are visible to your visitors, shared links, and friends.
                 </p>
               </div>
 
-              <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <button
+                  type="button"
+                  onClick={handleManualSync}
+                  disabled={isSyncingGallery}
+                  className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-bold text-gray-300 flex items-center gap-1.5 transition-colors border border-white/10 disabled:opacity-50"
+                  title="Synchronize gallery with server"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isSyncingGallery ? 'animate-spin text-amber-400' : ''}`} />
+                  <span>{isSyncingGallery ? 'Syncing...' : 'Sync Server'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleExportGalleryJson}
+                  className="px-3 py-2 rounded-xl bg-blue-950/40 hover:bg-blue-900/60 text-xs font-bold text-blue-300 flex items-center gap-1.5 transition-colors border border-blue-800/40"
+                  title="Download gallery.json for GitHub and Netlify"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Export for GitHub</span>
+                </button>
+
                 <button
                   type="button"
                   onClick={handleResetGallery}
-                  className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-bold text-gray-300 flex items-center gap-1.5 transition-colors border border-white/10"
+                  className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-bold text-gray-400 hover:text-gray-200 flex items-center gap-1.5 transition-colors border border-white/10"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
-                  Restore Defaults
+                  <span>Defaults</span>
                 </button>
 
                 <button

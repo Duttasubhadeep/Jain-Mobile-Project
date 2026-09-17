@@ -1,0 +1,57 @@
+[
+  {
+    "id": "gal-1",
+    "title": "Jain's Flagship Storefront & 18-Member Retail Team",
+    "category_tag": "Gole Bazar Flagship",
+    "description": "Our dedicated retail team and flagship showroom at S-82 Gole Bazar, Kharagpur. Over 21 years of trusted electronics service.",
+    "image_url": "/assets/images/no1.png",
+    "target_url": "/contact",
+    "sort_order": 1,
+    "is_active": true,
+    "created_at": "2026-03-01"
+  },
+  {
+    "id": "gal-2",
+    "title": "Festive Loot Lo Mega Sale Exhibition",
+    "category_tag": "Durga Puja Loot Lo",
+    "description": "Festive Loot Lo Sale live in Kharagpur — Bumper electric scooter prize, extra ₹5,000 exchange bonus, and lifetime free tempered glass.",
+    "image_url": "/assets/images/festive_lootlo_sale_1789505594932.jpg",
+    "target_url": "/offers",
+    "sort_order": 2,
+    "is_active": true,
+    "created_at": "2026-03-02"
+  },
+  {
+    "id": "gal-3",
+    "title": "Flagship Pre-Book & Live Experience Desk",
+    "category_tag": "Titanium Flagships",
+    "description": "Guaranteed showroom allocation on new flagship smartphones with 0% paperless financing from Bajaj Finserv & HDFC.",
+    "image_url": "/assets/images/iphone_prebook_showcase_1789505648113.jpg",
+    "target_url": "/mobiles",
+    "sort_order": 3,
+    "is_active": true,
+    "created_at": "2026-03-03"
+  },
+  {
+    "id": "gal-4",
+    "title": "21 Years of Trust • All Major Brands Authorized Retailing",
+    "category_tag": "21 Years Authorized",
+    "description": "Apple, Samsung, OnePlus, Oppo, Vivo, Realme, Motorola, Dell, HP, Asus authorized multi-brand retailer since 2005.",
+    "image_url": "/assets/images/multi_brand_heritage_1789505663574.jpg",
+    "target_url": "/about",
+    "sort_order": 4,
+    "is_active": true,
+    "created_at": "2026-03-04"
+  },
+  {
+    "id": "gal-5",
+    "title": "Official Brand Heritage & Trust Seal",
+    "category_tag": "Trust • Quality • Service",
+    "description": "Serving Kharagpur with 100% genuine products, official brand warranty, instant paperless finance, and guaranteed after-sales support.",
+    "image_url": "/assets/images/jains_brand_logo_1789505559002.jpg",
+    "target_url": "/about",
+    "sort_order": 5,
+    "is_active": true,
+    "created_at": "2026-03-05"
+  }
+]

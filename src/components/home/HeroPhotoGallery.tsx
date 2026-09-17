@@ -31,8 +31,14 @@ export const HeroPhotoGallery: React.FC<HeroPhotoGalleryProps> = ({
   const [fitMode, setFitMode] = useState<'contain' | 'cover'>('contain');
   const touchStartX = useRef<number | null>(null);
 
-  // Listen for real-time updates from Admin management
+  // Listen for real-time updates from Admin management and fetch server updates on mount
   useEffect(() => {
+    DataService.syncGalleryWithServer().then((updated) => {
+      if (Array.isArray(updated) && updated.length > 0) {
+        setItems(updated.filter((i) => i.is_active));
+      }
+    });
+
     const handleUpdate = (e: Event) => {
       const customEvent = e as CustomEvent;
       if (customEvent.detail?.key === 'gallery' || customEvent.detail?.key === 'all') {

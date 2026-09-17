@@ -14,6 +14,9 @@ import {
   User,
   GalleryItem,
 } from '../types';
+import bundledGallery from '../data/gallery.json';
+
+let gallerySyncedOnce = false;
 
 const STORAGE_KEYS = {
   SETTINGS: 'jm_business_settings',
@@ -1152,16 +1155,26 @@ export const DataService = {
 
   // Gallery Management
   getGalleryItems(): GalleryItem[] {
+    const fallbackList = Array.isArray(bundledGallery) && bundledGallery.length > 0
+      ? (bundledGallery as GalleryItem[])
+      : INITIAL_GALLERY_ITEMS;
+
+    // Trigger asynchronous server sync on initial load so all visitors and friends receive uploaded photos
+    if (!gallerySyncedOnce && typeof window !== 'undefined') {
+      gallerySyncedOnce = true;
+      this.syncGalleryWithServer();
+    }
+
     const data = localStorage.getItem(STORAGE_KEYS.GALLERY);
     if (data === null) {
-      localStorage.setItem(STORAGE_KEYS.GALLERY, JSON.stringify(INITIAL_GALLERY_ITEMS));
-      return INITIAL_GALLERY_ITEMS;
+      localStorage.setItem(STORAGE_KEYS.GALLERY, JSON.stringify(fallbackList));
+      return fallbackList;
     }
     try {
       const parsed = JSON.parse(data);
-      if (!Array.isArray(parsed)) {
-        localStorage.setItem(STORAGE_KEYS.GALLERY, JSON.stringify(INITIAL_GALLERY_ITEMS));
-        return INITIAL_GALLERY_ITEMS;
+      if (!Array.isArray(parsed) || parsed.length === 0) {
+        localStorage.setItem(STORAGE_KEYS.GALLERY, JSON.stringify(fallbackList));
+        return fallbackList;
       }
       return parsed.map((item: GalleryItem) => {
         let url = item.image_url?.replace('/src/assets/images', '/assets/images');
@@ -1174,8 +1187,44 @@ export const DataService = {
         };
       }).sort((a: GalleryItem, b: GalleryItem) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
     } catch {
-      return INITIAL_GALLERY_ITEMS;
+      return fallbackList;
     }
+  },
+
+  async syncGalleryWithServer(): Promise<GalleryItem[]> {
+    try {
+      const res = await fetch('/api/gallery');
+      if (!res.ok) return this.getGalleryItems();
+      const data = await res.json();
+      if (data && data.success && Array.isArray(data.items) && data.items.length > 0) {
+        const items = data.items as GalleryItem[];
+        localStorage.setItem(STORAGE_KEYS.GALLERY, JSON.stringify(items));
+        window.dispatchEvent(new CustomEvent('jm_data_updated', { detail: { key: 'gallery' } }));
+        return items;
+      }
+    } catch {
+      // Offline or static hosting: seamlessly use cached localStorage
+    }
+    return this.getGalleryItems();
+  },
+
+  async uploadImage(dataUrl: string, filename?: string): Promise<string> {
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dataUrl, filename }),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.url) {
+          return json.url;
+        }
+      }
+    } catch {
+      // Fall back to dataUrl if upload endpoint unreachable
+    }
+    return dataUrl;
   },
 
   saveGalleryItem(itemData: Partial<GalleryItem>): GalleryItem {
@@ -1229,6 +1278,24 @@ export const DataService = {
       console.warn('LocalStorage quota issue saving gallery item:', e);
     }
     window.dispatchEvent(new CustomEvent('jm_data_updated', { detail: { key: 'gallery' } }));
+
+    // Send update to server so all visitors and shared preview links receive it
+    fetch('/api/gallery', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(savedItem),
+    })
+      .then((res) => res.json())
+      .then((json) => {
+        if (json && json.success && Array.isArray(json.items)) {
+          localStorage.setItem(STORAGE_KEYS.GALLERY, JSON.stringify(json.items));
+          window.dispatchEvent(new CustomEvent('jm_data_updated', { detail: { key: 'gallery' } }));
+        }
+      })
+      .catch(() => {
+        // Safe offline fallback
+      });
+
     return savedItem;
   },
 
@@ -1239,6 +1306,21 @@ export const DataService = {
       const filtered = currentList.filter(i => String(i.id).trim() !== targetId);
       localStorage.setItem(STORAGE_KEYS.GALLERY, JSON.stringify(filtered));
       window.dispatchEvent(new CustomEvent('jm_data_updated', { detail: { key: 'gallery' } }));
+
+      // Send deletion to server
+      fetch(`/api/gallery/${encodeURIComponent(targetId)}`, {
+        method: 'DELETE',
+      })
+        .then((res) => res.json())
+        .then((json) => {
+          if (json && json.success && Array.isArray(json.items)) {
+            localStorage.setItem(STORAGE_KEYS.GALLERY, JSON.stringify(json.items));
+            window.dispatchEvent(new CustomEvent('jm_data_updated', { detail: { key: 'gallery' } }));
+          }
+        })
+        .catch(() => {
+          // Safe offline fallback
+        });
     } catch (err) {
       console.error('Error deleting gallery item:', err);
     }
@@ -1251,9 +1333,16 @@ export const DataService = {
   },
 
   resetGalleryItems(): GalleryItem[] {
-    localStorage.setItem(STORAGE_KEYS.GALLERY, JSON.stringify(INITIAL_GALLERY_ITEMS));
+    const defaults = Array.isArray(bundledGallery) && bundledGallery.length > 0
+      ? (bundledGallery as GalleryItem[])
+      : INITIAL_GALLERY_ITEMS;
+    localStorage.setItem(STORAGE_KEYS.GALLERY, JSON.stringify(defaults));
     window.dispatchEvent(new CustomEvent('jm_data_updated', { detail: { key: 'gallery' } }));
-    return INITIAL_GALLERY_ITEMS;
+
+    fetch('/api/gallery/reset', { method: 'POST' })
+      .catch(() => {});
+
+    return defaults;
   },
 
   // Reset to initial brand defaults if user wants to restore
