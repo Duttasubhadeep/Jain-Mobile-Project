@@ -267,3 +267,15 @@ export interface CartItem {
   variant?: ProductVariant;
   quantity: number;
 }
+
+export interface GalleryItem {
+  id: string;
+  title: string;
+  category_tag: string;
+  description?: string;
+  image_url: string;
+  target_url?: string;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+}

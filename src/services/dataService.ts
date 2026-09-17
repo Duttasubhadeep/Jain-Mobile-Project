@@ -12,6 +12,7 @@ import {
   Enquiry,
   BusinessSettings,
   User,
+  GalleryItem,
 } from '../types';
 
 const STORAGE_KEYS = {
@@ -31,6 +32,7 @@ const STORAGE_KEYS = {
   CURRENT_USER: 'jm_current_user',
   WISHLIST: 'jm_wishlist',
   CART: 'jm_cart',
+  GALLERY: 'jm_photo_gallery',
 };
 
 export const INITIAL_SETTINGS: BusinessSettings = {
@@ -604,6 +606,64 @@ export const INITIAL_SOCIAL: SocialMediaContent[] = [
   }
 ];
 
+export const INITIAL_GALLERY_ITEMS: GalleryItem[] = [
+  {
+    id: 'gal-1',
+    title: "Jain's Flagship Storefront & 18-Member Retail Team",
+    category_tag: 'Gole Bazar Flagship',
+    description: "Our dedicated retail team and flagship showroom at S-82 Gole Bazar, Kharagpur. Over 21 years of trusted electronics service.",
+    image_url: '/assets/images/no1.png',
+    target_url: '/contact',
+    sort_order: 1,
+    is_active: true,
+    created_at: '2026-03-01',
+  },
+  {
+    id: 'gal-2',
+    title: 'Festive Loot Lo Mega Sale Exhibition',
+    category_tag: 'Durga Puja Loot Lo',
+    description: 'Festive Loot Lo Sale live in Kharagpur — Bumper electric scooter prize, extra ₹5,000 exchange bonus, and lifetime free tempered glass.',
+    image_url: '/assets/images/festive_lootlo_sale_1789505594932.jpg',
+    target_url: '/offers',
+    sort_order: 2,
+    is_active: true,
+    created_at: '2026-03-02',
+  },
+  {
+    id: 'gal-3',
+    title: 'Flagship Pre-Book & Live Experience Desk',
+    category_tag: 'Titanium Flagships',
+    description: 'Guaranteed showroom allocation on new flagship smartphones with 0% paperless financing from Bajaj Finserv & HDFC.',
+    image_url: '/assets/images/iphone_prebook_showcase_1789505648113.jpg',
+    target_url: '/mobiles',
+    sort_order: 3,
+    is_active: true,
+    created_at: '2026-03-03',
+  },
+  {
+    id: 'gal-4',
+    title: '21 Years of Trust • All Major Brands Authorized Retailing',
+    category_tag: '21 Years Authorized',
+    description: 'Apple, Samsung, OnePlus, Oppo, Vivo, Realme, Motorola, Dell, HP, Asus authorized multi-brand retailer since 2005.',
+    image_url: '/assets/images/multi_brand_heritage_1789505663574.jpg',
+    target_url: '/about',
+    sort_order: 4,
+    is_active: true,
+    created_at: '2026-03-04',
+  },
+  {
+    id: 'gal-5',
+    title: 'Official Brand Heritage & Trust Seal',
+    category_tag: 'Trust • Quality • Service',
+    description: 'Serving Kharagpur with 100% genuine products, official brand warranty, instant paperless finance, and guaranteed after-sales support.',
+    image_url: '/assets/images/jains_brand_logo_1789505559002.jpg',
+    target_url: '/about',
+    sort_order: 5,
+    is_active: true,
+    created_at: '2026-03-05',
+  },
+];
+
 export const FINANCE_PARTNERS = [
   { name: 'Bajaj Finserv', badge: '0% Interest EMI', desc: 'Instant paperless approval in 15 mins' },
   { name: 'IDFC FIRST Bank', badge: 'Low Down Payment', desc: 'Flexible 6, 9, 12 & 30 months tenure' },
@@ -1088,6 +1148,112 @@ export const DataService = {
     const list = this.getEnquiries().map(i => i.id === req.id ? req : i);
     localStorage.setItem(STORAGE_KEYS.ENQUIRIES, JSON.stringify(list));
     window.dispatchEvent(new CustomEvent('jm_data_updated', { detail: { key: 'enquiries' } }));
+  },
+
+  // Gallery Management
+  getGalleryItems(): GalleryItem[] {
+    const data = localStorage.getItem(STORAGE_KEYS.GALLERY);
+    if (data === null) {
+      localStorage.setItem(STORAGE_KEYS.GALLERY, JSON.stringify(INITIAL_GALLERY_ITEMS));
+      return INITIAL_GALLERY_ITEMS;
+    }
+    try {
+      const parsed = JSON.parse(data);
+      if (!Array.isArray(parsed)) {
+        localStorage.setItem(STORAGE_KEYS.GALLERY, JSON.stringify(INITIAL_GALLERY_ITEMS));
+        return INITIAL_GALLERY_ITEMS;
+      }
+      return parsed.map((item: GalleryItem) => {
+        let url = item.image_url?.replace('/src/assets/images', '/assets/images');
+        if (url?.includes('jains_store_team_1789505580520.jpg')) {
+          url = '/assets/images/no1.png';
+        }
+        return {
+          ...item,
+          image_url: url,
+        };
+      }).sort((a: GalleryItem, b: GalleryItem) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+    } catch {
+      return INITIAL_GALLERY_ITEMS;
+    }
+  },
+
+  saveGalleryItem(itemData: Partial<GalleryItem>): GalleryItem {
+    const list = this.getGalleryItems();
+    let savedItem: GalleryItem;
+
+    if (itemData.id) {
+      // Edit existing
+      const index = list.findIndex(i => String(i.id).trim() === String(itemData.id).trim());
+      if (index >= 0) {
+        savedItem = {
+          ...list[index],
+          ...itemData,
+          image_url: itemData.image_url?.replace('/src/assets/images', '/assets/images') || list[index].image_url,
+        } as GalleryItem;
+        list[index] = savedItem;
+      } else {
+        savedItem = {
+          id: String(itemData.id),
+          title: itemData.title || 'Showroom Photo',
+          category_tag: itemData.category_tag || 'Showroom',
+          description: itemData.description || '',
+          image_url: itemData.image_url?.replace('/src/assets/images', '/assets/images') || '',
+          target_url: itemData.target_url || '',
+          sort_order: itemData.sort_order ?? (list.length + 1),
+          is_active: itemData.is_active ?? true,
+          created_at: new Date().toISOString(),
+        };
+        list.push(savedItem);
+      }
+    } else {
+      // New item with guaranteed unique id
+      savedItem = {
+        id: `gal_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        title: itemData.title || 'Showroom Photo',
+        category_tag: itemData.category_tag || 'Showroom',
+        description: itemData.description || '',
+        image_url: itemData.image_url?.replace('/src/assets/images', '/assets/images') || '',
+        target_url: itemData.target_url || '',
+        sort_order: itemData.sort_order ?? (list.length + 1),
+        is_active: itemData.is_active ?? true,
+        created_at: new Date().toISOString(),
+      };
+      list.push(savedItem);
+    }
+
+    list.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+    try {
+      localStorage.setItem(STORAGE_KEYS.GALLERY, JSON.stringify(list));
+    } catch (e) {
+      console.warn('LocalStorage quota issue saving gallery item:', e);
+    }
+    window.dispatchEvent(new CustomEvent('jm_data_updated', { detail: { key: 'gallery' } }));
+    return savedItem;
+  },
+
+  deleteGalleryItem(id: string): void {
+    try {
+      const targetId = String(id).trim();
+      const currentList = this.getGalleryItems();
+      const filtered = currentList.filter(i => String(i.id).trim() !== targetId);
+      localStorage.setItem(STORAGE_KEYS.GALLERY, JSON.stringify(filtered));
+      window.dispatchEvent(new CustomEvent('jm_data_updated', { detail: { key: 'gallery' } }));
+    } catch (err) {
+      console.error('Error deleting gallery item:', err);
+    }
+  },
+
+  reorderGalleryItems(items: GalleryItem[]): void {
+    const reordered = items.map((item, idx) => ({ ...item, sort_order: idx + 1 }));
+    localStorage.setItem(STORAGE_KEYS.GALLERY, JSON.stringify(reordered));
+    window.dispatchEvent(new CustomEvent('jm_data_updated', { detail: { key: 'gallery' } }));
+  },
+
+  resetGalleryItems(): GalleryItem[] {
+    localStorage.setItem(STORAGE_KEYS.GALLERY, JSON.stringify(INITIAL_GALLERY_ITEMS));
+    window.dispatchEvent(new CustomEvent('jm_data_updated', { detail: { key: 'gallery' } }));
+    return INITIAL_GALLERY_ITEMS;
   },
 
   // Reset to initial brand defaults if user wants to restore

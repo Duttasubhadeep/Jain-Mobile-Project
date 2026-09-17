@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { getYearsOfTrust } from '../../utils/formatters';
+import { WelcomeTicker } from './WelcomeTicker';
 
 interface HeaderProps {
   currentPath: string;
@@ -73,39 +74,8 @@ export const Header: React.FC<HeaderProps> = ({ currentPath, navigate }) => {
 
   return (
     <header className="sticky top-0 z-40 w-full select-none">
-      {/* SECTION 01 — ANNOUNCEMENT BAR */}
-      <div className="bg-gradient-to-r from-[var(--theme-primary)] via-red-600 to-[var(--theme-primary)] text-white text-xs font-semibold py-1.5 px-4 overflow-hidden border-b border-black/20 shadow-md">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="hidden md:flex items-center gap-2">
-            <span className="inline-block w-2 h-2 rounded-full bg-white animate-ping" />
-            <span className="tracking-wider uppercase font-black text-[11px]">AUTHORISED MULTI-BRAND SHOWROOM • KHARAGPUR</span>
-          </div>
-
-          <div className="overflow-hidden w-full md:w-auto flex-1 md:flex-initial text-center">
-            <p className="font-extrabold tracking-widest text-xs uppercase animate-pulse sm:animate-none flex items-center justify-center gap-2">
-              <Sparkles className="w-3 h-3 inline-block animate-spin-slow" />
-              {settings.announcement_text || 'NEW ARRIVALS • BEST PRICES • EXCHANGE • 0% FINANCE AVAILABLE'}
-            </p>
-          </div>
-
-          <div className="hidden lg:flex items-center gap-4 text-[11px] font-bold tracking-wider">
-            <button
-              onClick={() => navigate('/faq')}
-              className="hover:underline transition-all"
-            >
-              FAQS
-            </button>
-            <span>•</span>
-            <button
-              onClick={() => navigate('/admin')}
-              className="flex items-center gap-1 hover:bg-black/30 bg-black/20 px-2.5 py-0.5 rounded-full font-mono text-[10px] transition-colors"
-            >
-              <LayoutDashboard className="w-3 h-3" />
-              ADMIN
-            </button>
-          </div>
-        </div>
-      </div>
+      {/* SECTION 01 — DYNAMIC NEWS TICKER BAR (Replicating PG Admission ticker animation) */}
+      <WelcomeTicker onNewsClick={() => navigate('/offers')} />
 
       {/* SECTION 02 — NAVIGATION */}
       <nav

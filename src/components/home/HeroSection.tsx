@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { getYearsOfTrust, formatWhatsAppLink } from '../../utils/formatters';
+import { HeroPhotoGallery } from './HeroPhotoGallery';
 
 interface HeroSectionProps {
   navigate: (path: string) => void;
@@ -48,9 +49,12 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ navigate }) => {
               </span>
             </h1>
 
-            {/* SUPPORTING TEXT */}
+            {/* STRATEGIC PHOTO GALLERY SHOWCASE — Placed directly between headline and subtitle */}
+            <HeroPhotoGallery onNavigate={navigate} />
+
+            {/* SUPPORTING SUBTITLE */}
             <p className="text-base sm:text-lg text-gray-300 font-medium tracking-wide max-w-xl leading-relaxed">
-              {settings.hero_subtitle || 'Authorised multi-brand store in Kharagpur for Apple, Samsung, OnePlus, Vivo, Oppo, Xiaomi, Dell, HP & Asus.'}
+              {settings.hero_subtitle || "Kharagpur's #1 Destination for Smartphones, Laptops & Genuine Accessories Since 2005."}
             </p>
 
             {/* LIVE KHARAGPUR SHOWROOM BADGE */}

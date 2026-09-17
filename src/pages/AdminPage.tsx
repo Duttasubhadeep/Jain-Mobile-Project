@@ -16,11 +16,20 @@ import {
   MessageCircle,
   Save,
   RotateCcw,
+  Image,
+  ArrowUp,
+  ArrowDown,
+  Upload,
+  Eye,
+  EyeOff,
+  Camera,
+  Maximize2,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { DataService } from '../services/dataService';
-import { Product, Order, ExchangeRequest, Review, BusinessSettings } from '../types';
+import { Product, Order, ExchangeRequest, Review, BusinessSettings, GalleryItem } from '../types';
 import { formatINR, formatDate, formatWhatsAppLink } from '../utils/formatters';
+import { HeroPhotoGallery } from '../components/home/HeroPhotoGallery';
 
 export const AdminPage: React.FC = () => {
   const { products, categories, brands, settings, updateSettings, showToast } = useApp();
@@ -32,16 +41,32 @@ export const AdminPage: React.FC = () => {
   const [passcode, setPasscode] = useState('');
 
   // Active Admin Tab
-  const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'exchanges' | 'reviews' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'gallery' | 'products' | 'orders' | 'exchanges' | 'reviews' | 'settings'>('overview');
 
   // Real-time data
   const [orders, setOrders] = useState<Order[]>(() => DataService.getOrders());
   const [exchanges, setExchanges] = useState<ExchangeRequest[]>(() => DataService.getExchangeRequests());
   const [reviews, setReviews] = useState<Review[]>(() => DataService.getReviews());
+  const [galleryItems, setGalleryItems] = useState<GalleryItem[]>(() => DataService.getGalleryItems());
+
+  // Gallery Editing / Creation Modal
+  const [editingGalleryItem, setEditingGalleryItem] = useState<Partial<GalleryItem> | null>(null);
+  const [isNewGalleryItem, setIsNewGalleryItem] = useState(false);
+  const [galleryImagePreview, setGalleryImagePreview] = useState<string>('');
 
   // Product Editing / Creation Modal
   const [editingProduct, setEditingProduct] = useState<Partial<Product> | null>(null);
   const [isNewProduct, setIsNewProduct] = useState(false);
+
+  // In-app Confirmation Dialog State (safe for sandboxed iframes without relying on window.confirm)
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmLabel: string;
+    confirmVariant?: 'danger' | 'warning' | 'primary';
+    onConfirm: () => void;
+  } | null>(null);
 
   // Settings form state
   const [settingsForm, setSettingsForm] = useState<BusinessSettings>(settings);
@@ -64,6 +89,130 @@ export const AdminPage: React.FC = () => {
     setIsAuthenticated(false);
     sessionStorage.removeItem('jm_admin_auth');
     showToast('Logged out of admin desk', 'info');
+  };
+
+  // Gallery actions
+  const handleSaveGalleryItem = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingGalleryItem?.image_url) {
+      showToast('Please provide an image URL or upload an image file', 'error');
+      return;
+    }
+
+    DataService.saveGalleryItem({
+      ...editingGalleryItem,
+      title: editingGalleryItem.title || 'Showroom Photo',
+      category_tag: editingGalleryItem.category_tag || 'Gole Bazar Flagship',
+      sort_order: Number(editingGalleryItem.sort_order || galleryItems.length + 1),
+      is_active: editingGalleryItem.is_active !== undefined ? editingGalleryItem.is_active : true,
+    });
+
+    setGalleryItems(DataService.getGalleryItems());
+    setEditingGalleryItem(null);
+    setIsNewGalleryItem(false);
+    setGalleryImagePreview('');
+    showToast('Photo saved to hero showcase gallery', 'success');
+  };
+
+  const handleDeleteGalleryItem = (id: string, title?: string) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Remove Photograph',
+      message: `Are you sure you want to remove "${title || 'this photograph'}" from the hero showcase gallery? This change applies immediately.`,
+      confirmLabel: 'Delete Photograph',
+      confirmVariant: 'danger',
+      onConfirm: () => {
+        DataService.deleteGalleryItem(id);
+        const updated = DataService.getGalleryItems();
+        setGalleryItems(updated);
+        if (editingGalleryItem?.id === id) {
+          setEditingGalleryItem(null);
+          setGalleryImagePreview('');
+        }
+        showToast('Photograph removed from gallery', 'info');
+        setConfirmDialog(null);
+      },
+    });
+  };
+
+  const handleToggleGalleryActive = (item: GalleryItem) => {
+    DataService.saveGalleryItem({ ...item, is_active: !item.is_active });
+    setGalleryItems(DataService.getGalleryItems());
+    showToast(`Photograph ${item.is_active ? 'hidden' : 'activated'} on gallery`, 'info');
+  };
+
+  const handleMoveGalleryItem = (index: number, direction: 'up' | 'down') => {
+    const newItems = [...galleryItems];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= newItems.length) return;
+    const temp = newItems[index];
+    newItems[index] = newItems[targetIndex];
+    newItems[targetIndex] = temp;
+    DataService.reorderGalleryItems(newItems);
+    setGalleryItems(DataService.getGalleryItems());
+    showToast('Gallery order updated', 'success');
+  };
+
+  const handleResetGallery = () => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Restore Default Photographs',
+      message: 'Restore all default high-resolution showroom photographs? Any custom photographs will be replaced with the original flagship showcase.',
+      confirmLabel: 'Restore Defaults',
+      confirmVariant: 'warning',
+      onConfirm: () => {
+        const reset = DataService.resetGalleryItems();
+        setGalleryItems(reset);
+        showToast('Default gallery photographs restored', 'success');
+        setConfirmDialog(null);
+      },
+    });
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 15 * 1024 * 1024) {
+      showToast('Image file size should be less than 15MB', 'error');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const rawResult = event.target?.result as string;
+      const img = new window.Image();
+      img.onload = () => {
+        const maxWidth = 1600;
+        const maxHeight = 1200;
+        let width = img.width;
+        let height = img.height;
+        if (width > maxWidth || height > maxHeight) {
+          const ratio = Math.min(maxWidth / width, maxHeight / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressed = canvas.toDataURL('image/jpeg', 0.85);
+          setGalleryImagePreview(compressed);
+          setEditingGalleryItem((prev) => ({ ...(prev || {}), image_url: compressed }));
+        } else {
+          setGalleryImagePreview(rawResult);
+          setEditingGalleryItem((prev) => ({ ...(prev || {}), image_url: rawResult }));
+        }
+        showToast('Photograph loaded from device', 'success');
+      };
+      img.onerror = () => {
+        setGalleryImagePreview(rawResult);
+        setEditingGalleryItem((prev) => ({ ...(prev || {}), image_url: rawResult }));
+        showToast('Photograph loaded from device', 'success');
+      };
+      img.src = rawResult;
+    };
+    reader.readAsDataURL(file);
   };
 
   // Product actions
@@ -120,11 +269,19 @@ export const AdminPage: React.FC = () => {
     showToast(isNewProduct ? 'Product created successfully' : 'Product updated', 'success');
   };
 
-  const handleDeleteProduct = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
-      DataService.deleteProduct(id);
-      showToast('Product removed', 'info');
-    }
+  const handleDeleteProduct = (id: string, name?: string) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Product',
+      message: `Are you sure you want to delete "${name || 'this product'}" from your showroom catalog?`,
+      confirmLabel: 'Delete Product',
+      confirmVariant: 'danger',
+      onConfirm: () => {
+        DataService.deleteProduct(id);
+        showToast('Product removed from catalog', 'info');
+        setConfirmDialog(null);
+      },
+    });
   };
 
   const handleUpdateOrderStatus = (orderId: string, status: any) => {
@@ -146,10 +303,17 @@ export const AdminPage: React.FC = () => {
   };
 
   const handleResetData = () => {
-    if (window.confirm('Reset all demo data back to default showroom catalog?')) {
-      DataService.resetToDefaults();
-      window.location.reload();
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Reset Demo Data',
+      message: 'Reset all products, banners, and showroom data back to default catalog? Any custom additions will be reverted.',
+      confirmLabel: 'Reset Everything',
+      confirmVariant: 'danger',
+      onConfirm: () => {
+        DataService.resetToDefaults();
+        window.location.reload();
+      },
+    });
   };
 
   // PASSCODE LOGIN SCREEN
@@ -246,6 +410,7 @@ export const AdminPage: React.FC = () => {
         <div className="flex gap-2 overflow-x-auto pb-2 border-b border-[#1F1F1F]">
           {[
             { id: 'overview', label: 'Overview', icon: Package },
+            { id: 'gallery', label: `Photo Gallery (${galleryItems.length})`, icon: Image },
             { id: 'products', label: `Products (${products.length})`, icon: Package },
             { id: 'orders', label: `Orders (${orders.length})`, icon: ShoppingBag },
             { id: 'exchanges', label: `Exchange Leads (${exchanges.length})`, icon: RefreshCw },
@@ -449,7 +614,7 @@ export const AdminPage: React.FC = () => {
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDeleteProduct(p.id)}
+                          onClick={() => handleDeleteProduct(p.id, p.name)}
                           className="p-1 text-gray-500 hover:text-red-400"
                           title="Delete"
                         >
@@ -753,6 +918,442 @@ export const AdminPage: React.FC = () => {
           </form>
         )}
 
+        {/* TAB: PHOTO GALLERY MANAGEMENT */}
+        {activeTab === 'gallery' && (
+          <div className="space-y-6">
+            {/* Gallery Control Bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-2xl bg-[#111111] border border-[#222222]">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Camera className="w-4 h-4 text-amber-400" />
+                  <h2 className="text-lg font-black uppercase text-white tracking-wide">
+                    Hero Showcase Photo Gallery
+                  </h2>
+                </div>
+                <p className="text-xs text-gray-400 mt-1 max-w-2xl">
+                  Manage the prominent photo gallery placed between &quot;NEXT-GEN TECH. UNBEATABLE VALUE&quot; and &quot;Kharagpur&apos;s #1 Destination...&quot;. Styled with translucent badges, elongated pill pagination, subtle rounded corners, and gentle hover effects.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 flex-wrap">
+                <button
+                  type="button"
+                  onClick={handleResetGallery}
+                  className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-bold text-gray-300 flex items-center gap-1.5 transition-colors border border-white/10"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  Restore Defaults
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsNewGalleryItem(true);
+                    setEditingGalleryItem({
+                      title: '',
+                      category_tag: 'Gole Bazar Flagship',
+                      description: '',
+                      image_url: '',
+                      target_url: '/contact',
+                      sort_order: galleryItems.length + 1,
+                      is_active: true,
+                    });
+                    setGalleryImagePreview('');
+                  }}
+                  className="px-4 py-2 rounded-xl bg-[#E10600] hover:bg-[#FF1E16] text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-red-950/40 transition-all hover:scale-105"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add New Photo
+                </button>
+              </div>
+            </div>
+
+            {/* Live Interactive Preview Box */}
+            <div className="p-6 rounded-2xl bg-[#0e0e12] border border-[#1e1e24] space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black uppercase text-amber-400 tracking-wider flex items-center gap-1.5">
+                  <Eye className="w-3.5 h-3.5" />
+                  Live Hero Gallery Preview ({galleryItems.filter(i => i.is_active).length} Active Slides)
+                </span>
+                <span className="text-[11px] text-gray-400">
+                  Slide navigation &amp; lightbox interactive test
+                </span>
+              </div>
+              <div className="max-w-4xl mx-auto">
+                <HeroPhotoGallery />
+              </div>
+            </div>
+
+            {/* Gallery Cards List */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {galleryItems.map((item, index) => (
+                <div
+                  key={item.id}
+                  className={`group relative flex flex-col rounded-2xl bg-[#111114] border transition-all duration-300 overflow-hidden ${
+                    item.is_active
+                      ? 'border-[#26262e] hover:border-white/20'
+                      : 'border-white/5 opacity-60'
+                  }`}
+                >
+                  {/* Photo Preview with translucent tag matching gallery style */}
+                  <div className="relative aspect-video w-full bg-[#08080a] overflow-hidden">
+                    <img
+                      src={item.image_url}
+                      alt={item.title}
+                      className="w-full h-full object-contain object-center group-hover:scale-105 transition-transform duration-500"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        const target = e.currentTarget;
+                        if (!target.src.includes('jains_store_team')) {
+                          target.src = '/assets/images/jains_store_team_1789505580520.jpg';
+                        }
+                      }}
+                    />
+
+                    {/* Translucent Tag Badge */}
+                    <div className="absolute top-2.5 left-2.5 z-10 px-2.5 py-1 rounded-lg bg-black/65 backdrop-blur-md border border-white/20 text-white text-[11px] font-semibold">
+                      {item.category_tag}
+                    </div>
+
+                    {/* Order Badge */}
+                    <div className="absolute top-2.5 right-2.5 z-10 px-2 py-0.5 rounded bg-black/70 backdrop-blur-md text-amber-400 font-mono text-[10px] font-bold">
+                      #{index + 1}
+                    </div>
+
+                    {/* Active Status Badge */}
+                    <div className="absolute bottom-2.5 left-2.5 z-10">
+                      <span
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold ${
+                          item.is_active
+                            ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-500/30'
+                            : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
+                        }`}
+                      >
+                        {item.is_active ? 'Active on Hero' : 'Hidden'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Card Content */}
+                  <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
+                    <div>
+                      <h4 className="text-sm font-bold text-white line-clamp-1">
+                        {item.title}
+                      </h4>
+                      {item.description && (
+                        <p className="text-xs text-gray-400 mt-1 line-clamp-2">
+                          {item.description}
+                        </p>
+                      )}
+                      {item.target_url && (
+                        <p className="text-[11px] text-cyan-400 font-mono mt-1 truncate">
+                          Link: {item.target_url}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Actions Bar */}
+                    <div className="flex items-center justify-between pt-3 border-t border-white/5 text-xs">
+                      {/* Reorder Buttons */}
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          disabled={index === 0}
+                          onClick={() => handleMoveGalleryItem(index, 'up')}
+                          title="Move earlier"
+                          className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                        >
+                          <ArrowUp className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={index === galleryItems.length - 1}
+                          onClick={() => handleMoveGalleryItem(index, 'down')}
+                          title="Move later"
+                          className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                        >
+                          <ArrowDown className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      {/* Edit, Visibility & Delete */}
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleGalleryActive(item)}
+                          title={item.is_active ? 'Hide from hero gallery' : 'Show in hero gallery'}
+                          className={`p-1.5 rounded-lg transition-colors ${
+                            item.is_active
+                              ? 'bg-emerald-950/60 text-emerald-400 hover:bg-emerald-900/80'
+                              : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                          }`}
+                        >
+                          {item.is_active ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsNewGalleryItem(false);
+                            setEditingGalleryItem({ ...item });
+                            setGalleryImagePreview(item.image_url);
+                          }}
+                          title="Edit details"
+                          className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-gray-200 transition-colors"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteGalleryItem(item.id, item.title)}
+                          title="Delete photo"
+                          className="p-1.5 rounded-lg bg-red-950/40 hover:bg-red-900/60 text-red-400 hover:text-red-200 transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* MODAL: ADD / EDIT GALLERY ITEM */}
+        {editingGalleryItem && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 overflow-y-auto">
+            <div className="max-w-2xl w-full bg-[#111114] border border-[#2A2A2E] rounded-2xl p-6 sm:p-8 text-white space-y-6 max-h-[90vh] overflow-y-auto shadow-2xl">
+              <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                <div className="flex items-center gap-2">
+                  <Camera className="w-5 h-5 text-amber-400" />
+                  <h3 className="text-lg font-black uppercase tracking-wide">
+                    {isNewGalleryItem ? 'Add Photograph to Hero Gallery' : 'Edit Photograph'}
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingGalleryItem(null);
+                    setGalleryImagePreview('');
+                  }}
+                  className="p-1 text-gray-400 hover:text-white"
+                >
+                  <XCircle className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveGalleryItem} className="space-y-4">
+                {/* Image Upload or URL section */}
+                <div className="space-y-3 p-4 rounded-xl bg-black/40 border border-white/10">
+                  <label className="block text-xs font-black uppercase text-gray-300">
+                    Photograph Source *
+                  </label>
+
+                  {/* Device File Upload */}
+                  <div className="flex flex-col sm:flex-row items-center gap-3">
+                    <label className="w-full sm:w-auto flex-1 cursor-pointer flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-dashed border-white/20 text-xs font-bold text-gray-200 transition-colors">
+                      <Upload className="w-4 h-4 text-amber-400" />
+                      <span>Upload from Device (PNG/JPG)</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileUpload}
+                        className="hidden"
+                      />
+                    </label>
+
+                    <span className="text-xs text-gray-500 font-bold uppercase">OR</span>
+
+                    {/* Image URL Input */}
+                    <div className="w-full sm:w-auto flex-1">
+                      <input
+                        type="text"
+                        value={editingGalleryItem.image_url || ''}
+                        onChange={(e) => {
+                          setEditingGalleryItem({ ...editingGalleryItem, image_url: e.target.value });
+                          setGalleryImagePreview(e.target.value);
+                        }}
+                        placeholder="Image URL or /assets/images/..."
+                        className="w-full px-3 py-3 rounded-xl bg-[#0A0A0A] border border-[#2A2A2A] text-xs text-white placeholder-gray-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Image Live Preview */}
+                  {(galleryImagePreview || editingGalleryItem.image_url) && (
+                    <div className="mt-3 relative rounded-xl overflow-hidden aspect-video max-h-48 border border-white/15 bg-black flex items-center justify-center group">
+                      <img
+                        src={galleryImagePreview || editingGalleryItem.image_url}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="absolute top-2 left-2 px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-md text-white text-[10px] font-semibold">
+                        {editingGalleryItem.category_tag || 'Category Tag Preview'}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setGalleryImagePreview('');
+                          setEditingGalleryItem((prev) => ({ ...(prev || {}), image_url: '' }));
+                          showToast('Image cleared from draft', 'info');
+                        }}
+                        className="absolute top-2 right-2 px-2.5 py-1 rounded-lg bg-red-600/90 hover:bg-red-600 text-white text-[10px] font-bold flex items-center gap-1 shadow-md transition-colors"
+                        title="Remove current image"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        <span>Remove Image</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Title */}
+                  <div>
+                    <label className="block text-xs font-bold uppercase text-gray-400 mb-1">
+                      Title / Caption *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={editingGalleryItem.title || ''}
+                      onChange={(e) =>
+                        setEditingGalleryItem({ ...editingGalleryItem, title: e.target.value })
+                      }
+                      placeholder="e.g. Jain's Gole Bazar Showroom Team"
+                      className="w-full px-3 py-2.5 rounded-lg bg-[#0A0A0A] border border-[#2A2A2A] text-xs text-white"
+                    />
+                  </div>
+
+                  {/* Category Tag */}
+                  <div>
+                    <label className="block text-xs font-bold uppercase text-gray-400 mb-1">
+                      Category Tag (Translucent Badge) *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={editingGalleryItem.category_tag || ''}
+                      onChange={(e) =>
+                        setEditingGalleryItem({ ...editingGalleryItem, category_tag: e.target.value })
+                      }
+                      placeholder="e.g. Gole Bazar Flagship, Festive Offers"
+                      className="w-full px-3 py-2.5 rounded-lg bg-[#0A0A0A] border border-[#2A2A2A] text-xs text-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Link Target */}
+                  <div>
+                    <label className="block text-xs font-bold uppercase text-gray-400 mb-1">
+                      Click Target URL (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={editingGalleryItem.target_url || ''}
+                      onChange={(e) =>
+                        setEditingGalleryItem({ ...editingGalleryItem, target_url: e.target.value })
+                      }
+                      placeholder="e.g. /offers or /contact"
+                      className="w-full px-3 py-2.5 rounded-lg bg-[#0A0A0A] border border-[#2A2A2A] text-xs text-white"
+                    />
+                  </div>
+
+                  {/* Sort Order */}
+                  <div>
+                    <label className="block text-xs font-bold uppercase text-gray-400 mb-1">
+                      Display Priority Order
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={editingGalleryItem.sort_order ?? 1}
+                      onChange={(e) =>
+                        setEditingGalleryItem({ ...editingGalleryItem, sort_order: Number(e.target.value) })
+                      }
+                      className="w-full px-3 py-2.5 rounded-lg bg-[#0A0A0A] border border-[#2A2A2A] text-xs text-white"
+                    />
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="block text-xs font-bold uppercase text-gray-400 mb-1">
+                    Description / Story
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={editingGalleryItem.description || ''}
+                    onChange={(e) =>
+                      setEditingGalleryItem({ ...editingGalleryItem, description: e.target.value })
+                    }
+                    placeholder="Brief backstory about this showroom moment or promotional event..."
+                    className="w-full px-3 py-2.5 rounded-lg bg-[#0A0A0A] border border-[#2A2A2A] text-xs text-white"
+                  />
+                </div>
+
+                {/* Active Checkbox */}
+                <div>
+                  <label className="flex items-center gap-2 text-xs text-gray-200 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editingGalleryItem.is_active ?? true}
+                      onChange={(e) =>
+                        setEditingGalleryItem({ ...editingGalleryItem, is_active: e.target.checked })
+                      }
+                      className="rounded text-red-600 focus:ring-0"
+                    />
+                    <span className="font-bold">Display in Hero Showcase Gallery</span>
+                  </label>
+                </div>
+
+                {/* Modal Footer */}
+                <div className="flex items-center justify-between gap-3 pt-4 border-t border-white/10">
+                  {!isNewGalleryItem && editingGalleryItem.id ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (editingGalleryItem.id) {
+                          handleDeleteGalleryItem(editingGalleryItem.id, editingGalleryItem.title);
+                        }
+                      }}
+                      className="px-3.5 py-2.5 rounded-xl bg-red-950/40 hover:bg-red-900/60 border border-red-800/40 text-xs font-bold text-red-300 flex items-center gap-1.5 transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                      <span>Delete Photograph</span>
+                    </button>
+                  ) : (
+                    <div />
+                  )}
+
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingGalleryItem(null);
+                        setGalleryImagePreview('');
+                      }}
+                      className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-bold text-gray-300 uppercase transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-6 py-2.5 rounded-xl bg-[#E10600] hover:bg-[#FF1E16] text-white text-xs font-black uppercase tracking-wider transition-colors shadow-lg shadow-red-950/40"
+                    >
+                      Save Photograph
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
         {/* MODAL: ADD / EDIT PRODUCT */}
         {editingProduct && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 overflow-y-auto">
@@ -934,6 +1535,51 @@ export const AdminPage: React.FC = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+        {/* CONFIRMATION DIALOG (In-app modal safe for iframe) */}
+        {confirmDialog && confirmDialog.isOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+            <div className="max-w-md w-full bg-[#141418] border border-[#2A2A32] rounded-2xl p-6 text-white space-y-4 shadow-2xl">
+              <div className="flex items-center gap-3">
+                <div
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                    confirmDialog.confirmVariant === 'warning'
+                      ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                      : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                  }`}
+                >
+                  <AlertTriangle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-base font-bold text-white">{confirmDialog.title}</h4>
+                  <p className="text-xs text-gray-400 mt-0.5">Please confirm this action</p>
+                </div>
+              </div>
+              <p className="text-xs text-gray-300 leading-relaxed bg-black/40 p-3 rounded-xl border border-white/5">
+                {confirmDialog.message}
+              </p>
+              <div className="flex justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setConfirmDialog(null)}
+                  className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-bold text-gray-300 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDialog.onConfirm}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold text-white transition-colors shadow-lg ${
+                    confirmDialog.confirmVariant === 'warning'
+                      ? 'bg-amber-600 hover:bg-amber-500 shadow-amber-950/40'
+                      : 'bg-red-600 hover:bg-red-500 shadow-red-950/40'
+                  }`}
+                >
+                  {confirmDialog.confirmLabel}
+                </button>
+              </div>
             </div>
           </div>
         )}
